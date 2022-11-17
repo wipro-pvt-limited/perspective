@@ -1,114 +1,52 @@
-def version ="${env.BUILD_I333}"
+node('wallmart-node'){
 
-pipeline{
 
-agent any
+//echo "GitHub BranhName ${env.BRANCH_NAME}"
+  //echo "Jenkins Job Number ${env.BUILD_NUMBER}"
+  echo "Jenkins Node Name ${env.NODE_NAME}"
+  
+  echo "Jenkins Home ${env.JENKINS_HOME}"
+  echo "Jenkins URL ${env.JENKINS_URL}"
+  echo "JOB Name ${env.JOB_NAME}"
+  
+  
+def mavenHome = tool name: "maven3.8.3"
 
-tools{
-    
-    maven "maven3.8.3"
-    
-} // tools
+properties([buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '5', daysToKeepStr: '', numToKeepStr: '5')), [$class: 'JobLocalConfiguration', changeReasonComment: ''], pipelineTriggers([pollSCM('* * * * *')])])
 
-/*
- options{
- 
-    timestamps()
 
-    properties([buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '5', daysToKeepStr: '', numToKeepStr: '5')
 
- } */ //closing options
-
-/* triggers{
-
-    pollSCM('* * * * *')
-    
- } */ //closing triggers
- 
- 
-stages{
-
-stage('CheckoutCode'){
-
-steps{
-
-git credentialsId: '28f70f33-2db1-46d0-94b8-f0fe4523e251', url: 'https://github.com/wipro-pvt-limited/perspective.git'
-
-} 
-
+stage('CheckOutCode'){
+git branch: 'development', credentialsId: '9aad10da-e742-413a-a2f6-ce6a8b007f70', url: 'https://github.com/MithunTechnologiesDevOps/maven-web-application.git'
 }
 
 stage('Build'){
-
-steps{
-
-sh "mvn clean package"
-
+sh "${mavenHome}/bin/mvn clean package"
 }
-}
-
-stage('docker image build'){
-    
-    steps{
-        
-        sh """\
-        
-        
-          #!/bin/bash -l
-
-        
-        docker build -t tocobell33:${version} .
-        
-        """
-        
-    }
+/*
+stage('ExecuteSOnarQubeReport'){
+sh "mvn  sonar:sonar"
 }
 
-stage('Docker login'){
-    
-    steps{
-        
-        sh """\
-          #!/bin/bash -l
+stage('UploadArtifactsIntoNexusRepo'){
+sh "mvn deploy"
+}*\
 
-        docker login -u shaikfayazz444 -p 8688949515
-        
-        docker tag tocobell33:${version} shaikfayazz444/ayaan:${version}
-        
-        """
-        
-    }
-    
-    
+stage('DeployAppintoTomcatServer'){
+sshagent(['dd147e39-1f55-4554-9700-b10dc494211f']) {
+  sh "scp -o StrictHostKeyChecking=no target/maven-web-application.war ec2-user@13.233.201.155:/opt/apache-tomcat-9.0.54/webapps/"
+}
+}
+/*
+stage('SendEmailNotification'){
+
+mail bcc: '', body: '''Build Over..
+
+Regards,
+Mithun Software Solutions,
+9980923226''', cc: 'devopstrainingblr@gmail.com', from: '', replyTo: '', subject: 'Build over!...', to: 'devopstrainingblr@gmail.com'
 }
 
+*/
 
-stage('docker push'){
-    
-    steps{
-        
-        sh """\
-        #!/bin/bash -l
-       docker push shaikfayazz444/ayaan:${version}
-        
-        """
-        
-    }
 }
-
-}//stages closing
-}//pipeline closing
-
-/*post{
-    
-    success{
-        
-    }
-    
-    
-} */
-
-
-
-
-
